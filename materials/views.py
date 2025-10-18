@@ -13,6 +13,10 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.contrib.auth.decorators import login_required
 from .tasks import send_course_update_notification
+from rest_framework import viewsets
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
+from .filtres import PaymentFilter
 
 class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
@@ -248,3 +252,12 @@ def update_course_materials(request, course_id):
         list(subscribers_emails)
     )
     return render(request, 'course_updated.html', {'course': course})
+
+class PaymentViewSet(viewsets.ModelViewSet):
+    queryset = Payment.objects.all()
+    serializer_class = PaymentSerializer
+
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_class = PaymentFilter
+    ordering_fields = ['date_of_payment']  # поле для сортировки
+    ordering = ['-date_of_payment']

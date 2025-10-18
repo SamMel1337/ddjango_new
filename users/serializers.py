@@ -3,7 +3,6 @@ from django.contrib.auth.password_validation import validate_password
 from .models import User
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):

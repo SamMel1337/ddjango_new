@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+import django_filters
 
 
 
@@ -46,3 +47,14 @@ class Course(models.Model):
 
     def __str__(self):
         return self.title
+
+class Payment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    date_paid = models.DateTimeField(auto_now_add=True)
+    course = models.ForeignKey('Course', on_delete=models.CASCADE, related_name='payments')
+    # Добавьте дополнительные поля по необходимости
+
+    def __str__(self):
+        return f'Payment {self.id} - {self.user.username} - {self.amount}'
+

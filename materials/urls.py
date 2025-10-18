@@ -4,7 +4,7 @@ from materials import views
 from materials.views import (CourseViewSet,
                              LessonListAPIView, LessonCreateAPIView, LessonRetrieveAPIView, \
                              LessonUpdateAPIView, LessonDestroyAPIView, SubscriptionViewSet, create_checkout_session,
-                             payment_history, stripe_webhook)
+                             payment_history, stripe_webhook, PaymentViewSet)
 
 app_name = 'materials'
 
@@ -20,5 +20,6 @@ urlpatterns = [
       path('subscriptions', SubscriptionViewSet.as_view({'get': 'list'}), name='subscriptions'),
       path('create-checkout-session/', views.create_checkout_session, name='create_checkout_session'),
       path('history/', payment_history, name='payment-history'),
-      path('webhook/', stripe_webhook, name='stripe-webhook')
+      path('webhook/', stripe_webhook, name='stripe-webhook'),
+      path('filtres/', PaymentViewSet.as_view({'get': 'list'}), name='filtres_date')
 ] + router.urls
