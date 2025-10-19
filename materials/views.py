@@ -49,12 +49,23 @@ class CourseViewSet(viewsets.ModelViewSet):
         serializer = LessonSerializer(lessons, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'], url_name='subscribe')
+    @action(detail=True, methods=['post', 'delete'], url_name='subscribe')
     def subscribe(self, request, pk=None):
         course = self.get_object()
-        lessons = course.lessons.all()
-        serializer = LessonSerializer(lessons, many=True)
-        return Response(serializer.data)
+
+        if request.method == 'POST':
+            subscription, created = Subscription.objects.get_or_create(
+                user=request.user,
+                course=course,
+                defaults={'is_active': True}
+            )
+            subscription.is_active = True
+            subscription.save()
+            return Response({'status': 'subscribed'}, status=status.HTTP_201_CREATED)
+
+        elif request.method == 'DELETE':
+            Subscription.objects.filter(user=request.user, course=course).update(is_active=False)
+            return Response({'status': 'unsubscribed'}, status=status.HTTP_200_OK)
 
 class LessonListAPIView(generics.ListAPIView):
     queryset = Lesson.objects.all()
