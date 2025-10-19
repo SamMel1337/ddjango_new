@@ -51,44 +51,55 @@ class Lesson(models.Model):
         return self.title
 
 class Payment(models.Model):
-    STATUS_CHOICES = [
-        ('pending', 'Ожидание'),
-        ('completed', 'Завершено'),
-        ('failed', 'Неудачно'),
-        ('refunded', 'Возвращено'),
+    CASH = 'cash'
+    TRANSFER = 'transfer'
+    STRIPE = 'stripe'
+
+    PAYMENT_METHOD_CHOICES = [
+        (CASH, 'Наличные'),
+        (TRANSFER, 'Перевод на счет'),
+        (STRIPE, 'Stripe'),
     ]
 
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='user_payments',  # Уникальный related_name
-        verbose_name="Пользователь"
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Пользователь')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Курс')
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Урок')
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Сумма оплаты')
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PAYMENT_METHOD_CHOICES,
+        default=TRANSFER,
+        verbose_name='Способ оплаты'
     )
-    course = models.ForeignKey(
-        Course,
-        on_delete=models.CASCADE,
-        related_name='course_payments',
-        verbose_name="Курс"
-    )
-    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Сумма")
-    currency = models.CharField(max_length=3, default='USD', verbose_name="Валюта")
-    stripe_payment_intent_id = models.CharField(max_length=100, unique=True, verbose_name="ID платежа Stripe")
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Статус")
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    payment_date = models.DateTimeField(auto_now_add=True, verbose_name='Дата оплаты')
+    is_successful = models.BooleanField(default=False, verbose_name='Оплата успешна')
+    stripe_payment_intent_id = models.CharField(max_length=100, blank=True, null=True,
+                                                verbose_name='ID платежа в Stripe')
 
     class Meta:
-        verbose_name = "Платеж"
-        verbose_name_plural = "Платежи"
-        db_table = 'payments'
-        indexes = [
-            models.Index(fields=['stripe_payment_intent_id']),
-            models.Index(fields=['status']),
-            models.Index(fields=['created_at']),
-        ]
+        verbose_name = 'Платеж'
+        verbose_name_plural = 'Платежи'
+        ordering = ['-payment_date']
 
     def __str__(self):
-        return f"Платеж {self.id} - {self.user.username} - {self.amount}"
+        return f'{self.user.email} - {self.amount} ({self.get_payment_method_display()})'
+
+    def save(self, *args, **kwargs):
+        # При успешной оплате предоставляем доступ к курсу/уроку
+        if self.is_successful:
+            self.grant_access()
+        super().save(*args, **kwargs)
+
+    def grant_access(self):
+        """Предоставить доступ к курсу/уроку после успешной оплаты"""
+        if self.course:
+            # Логика предоставления доступа к курсу
+            # Например, создание записи о доступе или отправка уведомления
+            print(f"Предоставлен доступ к курсу {self.course.title} для пользователя {self.user.email}")
+
+        if self.lesson:
+            # Логика предоставления доступа к уроку
+            print(f"Предоставлен доступ к уроку {self.lesson.title} для пользователя {self.user.email}")
 
 class Subscription(models.Model):
     objects = None

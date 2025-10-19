@@ -42,30 +42,47 @@ class CourseViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
-    @action(detail=True, methods=["get"])
-    def lessons(self, request, pk=None):
-        course = self.get_object()
-        lessons = course.lessons.all()
-        serializer = LessonSerializer(lessons, many=True)
-        return Response(serializer.data)
-
-    @action(detail=True, methods=['post', 'delete'], url_name='subscribe')
+    @action(detail=True, methods=['post', 'delete'])
     def subscribe(self, request, pk=None):
         course = self.get_object()
+        user = request.user
 
         if request.method == 'POST':
+            # Создаем или активируем подписку
             subscription, created = Subscription.objects.get_or_create(
-                user=request.user,
+                user=user,
                 course=course,
                 defaults={'is_active': True}
             )
-            subscription.is_active = True
-            subscription.save()
-            return Response({'status': 'subscribed'}, status=status.HTTP_201_CREATED)
+
+            if not created:
+                subscription.is_active = True
+                subscription.save()
+
+            return Response(
+                {'message': 'Подписка оформлена'},
+                status=status.HTTP_201_CREATED
+            )
 
         elif request.method == 'DELETE':
-            Subscription.objects.filter(user=request.user, course=course).update(is_active=False)
-            return Response({'status': 'unsubscribed'}, status=status.HTTP_200_OK)
+            # Деактивируем подписку
+            try:
+                subscription = Subscription.objects.get(
+                    user=user,
+                    course=course,
+                    is_active=True
+                )
+                subscription.is_active = False
+                subscription.save()
+                return Response(
+                    {'message': 'Подписка отменена'},
+                    status=status.HTTP_200_OK
+                )
+            except Subscription.DoesNotExist:
+                return Response(
+                    {'error': 'Подписка не найдена'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
 
 class LessonListAPIView(generics.ListAPIView):
     queryset = Lesson.objects.all()
